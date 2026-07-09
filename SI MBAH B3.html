@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SIMBAH B3 · PT MARGA MANDALASAKTI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:      #0A1628;
+    --navyMid:   #0F2040;
+    --navyLight: #162B4D;
+    --border:    #1E3A5F;
+    --amber:     #F59E0B;
+    --amberL:    #FCD34D;
+    --red:       #EF4444;
+    --green:     #10B981;
+    --blue:      #3B82F6;
+    --cyan:      #06B6D4;
+    --purple:    #A78BFA;
+    --pink:      #F472B6;
+    --orange:    #FB923C;
+    --text:      #E2E8F0;
+    --muted:     #64748B;
+    --dim:       #94A3B8;
+  }
+  html, body { height: 100%; background: var(--navy); color: var(--text); }
+  body { font-family: 'Sora', sans-serif; }
+  #root { min-height: 100vh; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--navyMid); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  select, input, textarea, button { font-family: 'Sora', sans-serif; }
+
+  /* Animations */
+  @keyframes fadeIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideIn { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+  @keyframes scanline { 0% { top:-8%; } 100% { top:108%; } }
+
+  .fade-in  { animation: fadeIn .35s ease both; }
+  .slide-in { animation: slideIn .3s ease both; }
+
+  /* Hover effects */
+  .btn-amber:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .btn-amber { transition: all .18s; }
+  .card-hover:hover { border-color: var(--amber) !important; }
+  .card-hover { transition: border-color .2s; }
+  .row-hover:hover { background: rgba(30,58,95,.45) !important; }
+
+  /* Scrollable table wrapper */
+  .table-wrap { overflow-x: auto; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .stat-grid { flex-direction: column !important; }
+    .two-col   { grid-template-columns: 1fr !important; }
+    .nav-tabs  { overflow-x: auto; white-space: nowrap; }
+    .form-row  { grid-template-columns: 1fr !important; }
+    .kpi-grid  { grid-template-columns: 1fr 1fr !important; }
+    .header-flex { flex-direction: column !important; gap: 10px !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+// ─── MASTER DATA ──────────────────────────────────────────────────────────────
+const UNITS = ["Layanan Transaksi Tol","HS","IT","Medis"];
+
+const B3_TYPES = [
+  { id:"oli_bekas",            label:"Oli Bekas",                  unit:"Liter", color:"#F59E0B", icon:"🛢️" },
+  { id:"aki_bekas",            label:"Aki / Baterai Bekas",         unit:"Kg",    color:"#EF4444", icon:"🔋" },
+  { id:"obat_kadaluarsa",      label:"Obat Kadaluarsa",             unit:"Kg",    color:"#3B82F6", icon:"💊" },
+  { id:"majun_terkontaminasi", label:"Majun Terkontaminasi",        unit:"Kg",    color:"#06B6D4", icon:"🧻" },
+  { id:"lampu_tl",             label:"Lampu TL / Neon Bekas",       unit:"Unit",  color:"#A78BFA", icon:"💡" },
+  { id:"cat_thinner",          label:"Cat & Thinner Sisa",          unit:"Liter", color:"#F472B6", icon:"🎨" },
+  { id:"kemasan_b3",           label:"Kemasan Bekas B3",            unit:"Unit",  color:"#10B981", icon:"📦" },
+  { id:"elektronik",           label:"Limbah Elektronik (E-Waste)", unit:"Kg",    color:"#FB923C", icon:"🖥️" },
+];
+
+const STATUS_OPT = [
+  { value:"tersimpan",       label:"Tersimpan di TPS",  color:"#F59E0B" },
+  { value:"menunggu_pickup", label:"Menunggu Pickup",   color:"#3B82F6" },
+  { value:"sudah_diangkut",  label:"Sudah Diangkut",   color:"#10B981" },
+];
+
+const MITRA_OPT = ["PT Setia Utama Nusantara"];
+
+const INIT = [
+  { id:1, unit:"Layanan Transaksi Tol", type:"lampu_tl",            qty:24,  date:"2025-03-10", status:"sudah_diangkut",  mitra:"PT Setia Utama Nusantara", manifest:"MF-2025-0031", catatan:"Lampu gardu utama",      photos:[] },
+  { id:2, unit:"IT",                    type:"elektronik",           qty:35,  date:"2025-03-18", status:"sudah_diangkut",  mitra:"PT Setia Utama Nusantara", manifest:"MF-2025-0044", catatan:"Monitor & UPS rusak",    photos:[] },
+  { id:3, unit:"Medis",                 type:"obat_kadaluarsa",      qty:8,   date:"2025-04-01", status:"sudah_diangkut",  mitra:"PT Setia Utama Nusantara", manifest:"MF-2025-0059", catatan:"Obat P3K kadaluarsa",    photos:[] },
+  { id:4, unit:"HS",                    type:"oli_bekas",            qty:120, date:"2025-04-05", status:"menunggu_pickup", mitra:"PT Setia Utama Nusantara", manifest:"",              catatan:"Menunggu jadwal pickup", photos:[] },
+  { id:5, unit:"Layanan Transaksi Tol", type:"majun_terkontaminasi", qty:12,  date:"2025-04-07", status:"tersimpan",       mitra:"",                         manifest:"",              catatan:"",                       photos:[] },
+  { id:6, unit:"IT",                    type:"aki_bekas",            qty:6,   date:"2025-04-09", status:"menunggu_pickup", mitra:"PT Setia Utama Nusantara", manifest:"",              catatan:"UPS server lama",        photos:[] },
+  { id:7, unit:"Medis",                 type:"kemasan_b3",           qty:20,  date:"2025-04-10", status:"tersimpan",       mitra:"",                         manifest:"",              catatan:"",                       photos:[] },
+  { id:8, unit:"HS",                    type:"lampu_tl",             qty:18,  date:"2025-04-11", status:"tersimpan",       mitra:"",                         manifest:"",              catatan:"Akan digabung",          photos:[] },
+];
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const getType   = id => B3_TYPES.find(t=>t.id===id)||B3_TYPES[0];
+const getStatus = v  => STATUS_OPT.find(s=>s.value===v)||STATUS_OPT[0];
+const fmtDate   = d  => new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"});
+const fmtNow    = ()  => new Date().toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"});
+
+// ─── BADGE ────────────────────────────────────────────────────────────────────
+const Badge = ({color,children,small}) => (
+  <span style={{
+    background:color+"22", color, border:`1px solid ${color}55`,
+    borderRadius:6, padding: small?"1px 8px":"3px 12px",
+    fontSize: small?10:11, fontWeight:700, letterSpacing:"0.03em", whiteSpace:"nowrap",
+  }}>{children}</span>
+);
+
+// ─── STAT CARD ────────────────────────────────────────────────────────────────
+const StatCard = ({label,value,sub,color,icon}) => (
+  <div className="card-hover" style={{
+    background:"var(--navyMid)", border:"1px solid var(--border)",
+    borderTop:`3px solid ${color}`, borderRadius:14, padding:"20px 22px",
+    flex:1, minWidth:130,
+  }}>
+    <div style={{fontSize:24,marginBottom:6}}>{icon}</div>
+    <div style={{color:"var(--muted)",fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:4}}>{label}</div>
+    <div style={{color,fontSize:30,fontWeight:800,lineHeight:1,fontFamily:"'JetBrains Mono',monospace"}}>{value}</div>
+    {sub&&<div style={{color:"var(--dim)",fontSize:11,marginTop:5}}>{sub}</div>}
+  </div>
+);
+
+// ─── MINI BAR ─────────────────────────────────────────────────────────────────
+const MiniBar = ({label,value,max,color,unit}) => (
+  <div style={{marginBottom:12}}>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+      <span style={{color:"var(--dim)",fontSize:12}}>{label}</span>
+      <span style={{color,fontSize:12,fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>{value} {unit}</span>
+    </div>
+    <div style={{background:"var(--border)",borderRadius:4,height:7,overflow:"hidden"}}>
+      <div style={{background:color,width:`${Math.min(100,(value/max)*100)}%`,height:"100%",borderRadius:4,transition:"width .7s ease"}}/>
+    </div>
+  </div>
+);
+
+// ─── INPUT STYLE ──────────────────────────────────────────────────────────────
+const IS = {
+  background:"var(--navyLight)", border:"1px solid var(--border)", borderRadius:8,
+  color:"var(--text)", padding:"10px 13px", fontSize:13, width:"100%", outline:"none",
+  fontFamily:"'Sora',sans-serif",
+};
+
+// ─── PHOTO UPLOADER ───────────────────────────────────────────────────────────
+const PhotoUploader = ({photos, onChange}) => {
+  const ref = useRef();
+  const [drag, setDrag] = useState(false);
+
+  const readFiles = files => {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (!fileArr.length) return;
+    const results = new Array(fileArr.length);
+    let done = 0;
+    fileArr.forEach((f, i) => {
+      const r = new FileReader();
+      r.onload = ev => {
+        results[i] = { src: ev.target.result, name: f.name, ts: Date.now() };
+        done++;
+        if (done === fileArr.length) {
+          onChange([...photos, ...results.filter(Boolean)]);
+        }
+      };
+      r.onerror = () => { done++; if (done === fileArr.length) onChange([...photos, ...results.filter(Boolean)]); };
+      r.readAsDataURL(f);
+    });
+  };
+
+  return (
+    <div>
+      <div
+        onClick={()=>ref.current.click()}
+        onDragOver={e=>{e.preventDefault();setDrag(true);}}
+        onDragLeave={()=>setDrag(false)}
+        onDrop={e=>{e.preventDefault();setDrag(false);readFiles(e.dataTransfer.files);}}
+        style={{
+          border:`2px dashed ${drag?"var(--amber)":"var(--border)"}`,
+          borderRadius:10, padding:"22px 16px", textAlign:"center",
+          cursor:"pointer", background: drag?"rgba(245,158,11,.08)":"var(--navyLight)",
+          transition:"all .2s",
+        }}
+      >
+        <div style={{fontSize:30,marginBottom:6}}>📷</div>
+        <div style={{color:"var(--amber)",fontSize:13,fontWeight:700}}>Klik atau Drop Foto di Sini</div>
+        <div style={{color:"var(--muted)",fontSize:11,marginTop:4}}>JPG, PNG, HEIC · Bisa pilih beberapa sekaligus</div>
+      </div>
+      <input ref={ref} type="file" accept="image/*" multiple style={{display:"none"}}
+        onChange={e=>{readFiles(e.target.files);e.target.value="";}}/>
+      {photos.length>0&&(
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:12}}>
+          {photos.map((p,i)=>(
+            <div key={i} style={{position:"relative"}}>
+              <img src={p.src} alt={p.name} style={{
+                width:80,height:80,objectFit:"cover",borderRadius:8,
+                border:"1px solid var(--border)",display:"block",
+              }}/>
+              <button onClick={()=>onChange(photos.filter((_,j)=>j!==i))} style={{
+                position:"absolute",top:-7,right:-7,background:"var(--red)",color:"#fff",
+                border:"none",borderRadius:"50%",width:22,height:22,fontSize:12,
+                cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+              }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── LIGHTBOX ─────────────────────────────────────────────────────────────────
+const Lightbox = ({photos,startIdx,onClose}) => {
+  const [idx,setIdx] = useState(startIdx);
+  useEffect(()=>{
+    const esc = e => { if(e.key==="Escape") onClose(); };
+    window.addEventListener("keydown",esc);
+    return ()=>window.removeEventListener("keydown",esc);
+  },[]);
+  return (
+    <div onClick={onClose} style={{
+      position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:2000,
+      display:"flex",alignItems:"center",justifyContent:"center",
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"relative",maxWidth:"90vw"}}>
+        <img src={photos[idx].src} alt="" style={{
+          maxWidth:"80vw",maxHeight:"82vh",borderRadius:12,objectFit:"contain",
+          boxShadow:"0 24px 80px rgba(0,0,0,.6)",
+        }}/>
+        <button onClick={onClose} style={{
+          position:"absolute",top:-16,right:-16,background:"var(--red)",color:"#fff",
+          border:"none",borderRadius:"50%",width:34,height:34,fontSize:18,cursor:"pointer",
+        }}>✕</button>
+        {photos.length>1&&<>
+          <button onClick={()=>setIdx((idx-1+photos.length)%photos.length)} style={{
+            position:"absolute",left:-56,top:"50%",transform:"translateY(-50%)",
+            background:"var(--navyMid)",color:"var(--text)",border:"1px solid var(--border)",
+            borderRadius:8,width:40,height:40,cursor:"pointer",fontSize:20,
+          }}>‹</button>
+          <button onClick={()=>setIdx((idx+1)%photos.length)} style={{
+            position:"absolute",right:-56,top:"50%",transform:"translateY(-50%)",
+            background:"var(--navyMid)",color:"var(--text)",border:"1px solid var(--border)",
+            borderRadius:8,width:40,height:40,cursor:"pointer",fontSize:20,
+          }}>›</button>
+        </>}
+        <div style={{textAlign:"center",color:"var(--dim)",fontSize:11,marginTop:10}}>
+          {photos[idx].name} &nbsp;·&nbsp; {idx+1} / {photos.length}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── DETAIL MODAL ─────────────────────────────────────────────────────────────
+const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto}) => {
+  const t = getType(entry.type), s = getStatus(entry.status);
+  const [lb,setLb]     = useState(null);
+  const [mf,setMf]     = useState(entry.manifest);
+  const fileRef        = useRef();
+
+  const readFile = f => {
+    const r = new FileReader();
+    r.onload = ev => onAddPhoto(entry.id, {src: ev.target.result, name: f.name, ts: Date.now()});
+    r.onerror = () => console.warn("Gagal membaca file:", f.name);
+    r.readAsDataURL(f);
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:"fixed",inset:0,background:"rgba(0,0,0,.75)",zIndex:900,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20,
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:16,
+        padding:28,width:540,maxWidth:"100%",maxHeight:"90vh",overflowY:"auto",
+      }}>
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div>
+            <div style={{color:t.color,fontSize:20,fontWeight:800,marginBottom:4}}>{t.icon} {t.label}</div>
+            <div style={{color:"var(--dim)",fontSize:12}}>{entry.unit} &nbsp;·&nbsp; {fmtDate(entry.date)}</div>
+          </div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:"var(--muted)",fontSize:22,cursor:"pointer"}}>✕</button>
+        </div>
+
+        {/* Info */}
+        {[
+          ["Jumlah",            `${entry.qty} ${t.unit}`],
+          ["Status",            <Badge color={s.color}>{s.label}</Badge>],
+          ["Mitra Transporter", entry.mitra||"—"],
+          ["Catatan",           entry.catatan||"—"],
+        ].map(([k,v])=>(
+          <div key={k} style={{display:"flex",gap:12,padding:"9px 0",borderBottom:"1px solid var(--border)"}}>
+            <span style={{color:"var(--muted)",fontSize:12,minWidth:145}}>{k}</span>
+            <span style={{color:"var(--text)",fontSize:12}}>{v}</span>
+          </div>
+        ))}
+
+        {/* Manifest */}
+        <div style={{padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
+          <div style={{color:"var(--muted)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",marginBottom:8}}>NO. MANIFEST</div>
+          <div style={{display:"flex",gap:8}}>
+            <input value={mf} onChange={e=>setMf(e.target.value)} placeholder="MF-2025-XXXX" style={{...IS,flex:1}}/>
+            <button onClick={()=>onUpdateManifest(entry.id,mf)} style={{
+              background:"rgba(59,130,246,.15)",border:"1px solid rgba(59,130,246,.4)",color:"var(--blue)",
+              borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:12,fontWeight:700,
+            }}>Simpan</button>
+          </div>
+        </div>
+
+        {/* Status actions */}
+        <div style={{display:"flex",gap:8,padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
+          {entry.status==="tersimpan"&&(
+            <button onClick={()=>{onUpdateStatus(entry.id,"menunggu_pickup");onClose();}} style={{
+              background:"rgba(59,130,246,.15)",border:"1px solid rgba(59,130,246,.4)",color:"var(--blue)",
+              borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:12,fontWeight:700,
+            }}>⏳ Request Pickup</button>
+          )}
+          {entry.status==="menunggu_pickup"&&(
+            <button onClick={()=>{onUpdateStatus(entry.id,"sudah_diangkut");onClose();}} style={{
+              background:"rgba(16,185,129,.15)",border:"1px solid rgba(16,185,129,.4)",color:"var(--green)",
+              borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:12,fontWeight:700,
+            }}>✅ Konfirmasi Sudah Diangkut</button>
+          )}
+          {entry.status==="sudah_diangkut"&&(
+            <span style={{color:"var(--green)",fontSize:12,alignSelf:"center"}}>✅ Proses Selesai</span>
+          )}
+        </div>
+
+        {/* Photos */}
+        <div style={{paddingTop:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{color:"var(--amberL)",fontSize:12,fontWeight:700,letterSpacing:"0.04em"}}>
+              📷 FOTO BUKTI ({entry.photos.length})
+            </div>
+            <button onClick={()=>fileRef.current.click()} style={{
+              background:"rgba(245,158,11,.12)",border:"1px solid rgba(245,158,11,.3)",color:"var(--amber)",
+              borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700,
+            }}>+ Tambah Foto</button>
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" multiple style={{display:"none"}}
+            onChange={e=>{Array.from(e.target.files).forEach(readFile);e.target.value="";}}/>
+          {entry.photos.length===0
+            ? <div style={{color:"var(--muted)",fontSize:12,fontStyle:"italic",padding:"12px 0"}}>Belum ada foto.</div>
+            : <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                {entry.photos.map((p,i)=>(
+                  <div key={i} style={{cursor:"pointer"}} onClick={()=>setLb(i)}>
+                    <img src={p.src} alt={p.name} style={{
+                      width:88,height:88,objectFit:"cover",borderRadius:8,
+                      border:"2px solid var(--border)",transition:"border-color .2s",
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor="var(--amber)"}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}
+                    />
+                  </div>
+                ))}
+              </div>
+          }
+        </div>
+
+        {lb!==null&&<Lightbox photos={entry.photos} startIdx={lb} onClose={()=>setLb(null)}/>}
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,setTab]               = useState("dashboard");
+  const [entries,setEntries]       = useState(INIT);
+  const [filterUnit,setFilterUnit] = useState("Semua Unit");
+  const [filterStatus,setFilterStatus] = useState("semua");
+  const [toast,setToast]           = useState("");
+  const [nextId,setNextId]         = useState(INIT.length+1);
+  const [detail,setDetail]         = useState(null);
+  const [mobileNav,setMobileNav]   = useState(false);
+
+  const blankForm = { unit:UNITS[0], type:B3_TYPES[0].id, qty:"",
+    date:new Date().toISOString().split("T")[0],
+    status:"tersimpan", mitra:"", manifest:"", catatan:"", photos:[] };
+  const [form,setForm] = useState(blankForm);
+
+  // Computed
+  const total     = entries.length;
+  const diangkut  = entries.filter(e=>e.status==="sudah_diangkut").length;
+  const menunggu  = entries.filter(e=>e.status==="menunggu_pickup").length;
+  const tersimpan = entries.filter(e=>e.status==="tersimpan").length;
+  const withPhoto = entries.filter(e=>e.photos.length>0).length;
+
+  const byType = B3_TYPES.map(t=>({
+    ...t,
+    total: entries.filter(e=>e.type===t.id).reduce((s,e)=>s+Number(e.qty),0),
+  })).filter(t=>t.total>0).sort((a,b)=>b.total-a.total);
+  const maxQ = Math.max(...byType.map(t=>t.total),1);
+
+  const byUnit = UNITS.map(u=>({
+    name:u,
+    count: entries.filter(e=>e.unit===u).length,
+    fp:    entries.filter(e=>e.unit===u&&e.photos.length>0).length,
+  })).sort((a,b)=>b.count-a.count);
+
+  const filtered = entries
+    .filter(e=>(filterUnit==="Semua Unit"||e.unit===filterUnit)&&(filterStatus==="semua"||e.status===filterStatus))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),4200); };
+
+  const handleSubmit = () => {
+    if(!form.qty||isNaN(form.qty)||Number(form.qty)<=0){ alert("Masukkan jumlah yang valid."); return; }
+    setEntries(prev=>[...prev,{...form,id:nextId,qty:Number(form.qty)}]);
+    setNextId(n=>n+1);
+    setForm(blankForm);
+    showToast("✅ Data limbah B3 berhasil disimpan!");
+    setTab("log");
+  };
+
+  const updateStatus   = (id,s) => setEntries(prev=>prev.map(e=>e.id===id?{...e,status:s}:e));
+  const updateManifest = (id,m) => setEntries(prev=>prev.map(e=>e.id===id?{...e,manifest:m}:e));
+  const addPhoto       = (id,p) => setEntries(prev=>prev.map(e=>e.id===id?{...e,photos:[...e.photos,p]}:e));
+
+  // When detail entry changes in entries, sync
+  useEffect(()=>{
+    if(detail) setDetail(entries.find(e=>e.id===detail.id)||null);
+  },[entries]);
+
+  const TABS = [
+    {id:"dashboard", label:"📊 Dashboard"},
+    {id:"input",     label:"📝 Input Data"},
+    {id:"log",       label:"📋 Log & Manifest"},
+    {id:"galeri",    label:"🖼️ Galeri Foto"},
+    {id:"laporan",   label:"📄 Laporan"},
+  ];
+
+  const NavBtn = ({t}) => (
+    <button onClick={()=>{setTab(t.id);setMobileNav(false);}} style={{
+      background: tab===t.id?"var(--amber)":"transparent",
+      color: tab===t.id?"var(--navy)":"var(--dim)",
+      border:"none", borderRadius:8, padding:"9px 18px",
+      fontWeight:700, fontSize:13, cursor:"pointer", transition:"all .2s",
+      whiteSpace:"nowrap",
+    }}>{t.label}</button>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:"var(--navy)",display:"flex",flexDirection:"column"}}>
+
+      {/* ── HEADER ── */}
+      <header style={{background:"var(--navyMid)",borderBottom:"1px solid var(--border)",position:"sticky",top:0,zIndex:100}}>
+        <div style={{padding:"16px 28px"}}>
+          <div className="header-flex" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{
+                background:"linear-gradient(135deg,var(--amber),#D97706)",
+                borderRadius:10,padding:"8px 11px",fontSize:20,
+                boxShadow:"0 4px 16px rgba(245,158,11,.35)",
+              }}>⚠️</div>
+              <div>
+                <div style={{fontWeight:800,fontSize:15,letterSpacing:"0.04em",color:"var(--amberL)",fontFamily:"'JetBrains Mono',monospace"}}>
+                  SISTEM PENGELOLAAN LIMBAH B3
+                </div>
+                <div style={{color:"var(--muted)",fontSize:10,letterSpacing:"0.07em"}}>
+                  PT MARGA MANDALASAKTI · SOLID WASTE DIVERTED
+                </div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <div style={{
+                background:"var(--navyLight)",border:"1px solid var(--border)",
+                borderRadius:8,padding:"7px 14px",fontSize:11,color:"var(--dim)",
+              }}>📅 {fmtNow()}</div>
+              <button className="btn-amber" onClick={()=>setTab("input")} style={{
+                background:"var(--amber)",color:"var(--navy)",border:"none",borderRadius:9,
+                padding:"9px 18px",fontWeight:800,fontSize:13,cursor:"pointer",
+                boxShadow:"0 4px 14px rgba(245,158,11,.3)",
+              }}>+ Input Limbah B3</button>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <nav className="nav-tabs" style={{display:"flex",gap:4,marginTop:14,overflowX:"auto"}}>
+            {TABS.map(t=><NavBtn key={t.id} t={t}/>)}
+          </nav>
+        </div>
+      </header>
+
+      {/* ── TOAST ── */}
+      {toast&&(
+        <div style={{
+          background:"rgba(16,185,129,.12)",borderBottom:"1px solid rgba(16,185,129,.4)",
+          color:"var(--green)",padding:"10px 28px",fontSize:13,fontWeight:600,
+          animation:"fadeIn .3s ease",
+        }}>{toast}</div>
+      )}
+
+      {/* ── CONTENT ── */}
+      <main style={{padding:"28px 28px",flex:1}} className="fade-in">
+
+        {/* ════════════════ DASHBOARD ════════════════ */}
+        {tab==="dashboard"&&(
+          <div>
+            {/* Stats */}
+            <div className="stat-grid" style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:24}}>
+              <StatCard label="Total Entri"       value={total}     sub="Seluruh unit"              color="#06B6D4" icon="📂"/>
+              <StatCard label="Sudah Diangkut"    value={diangkut}  sub="Terangkut mitra berizin"  color="#10B981" icon="✅"/>
+              <StatCard label="Menunggu Pickup"   value={menunggu}  sub="Perlu tindak lanjut"       color="#3B82F6" icon="⏳"/>
+              <StatCard label="Tersimpan di TPS"  value={tersimpan} sub="Di area unit"              color="#F59E0B" icon="🏭"/>
+              <StatCard label="Ada Bukti Foto"    value={withPhoto} sub="Entri terdokumentasi"      color="#A78BFA" icon="📷"/>
+            </div>
+
+            {/* Charts row */}
+            <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+              {/* Volume per jenis */}
+              <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px"}}>
+                <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:18,letterSpacing:"0.04em"}}>
+                  📊 VOLUME PER JENIS LIMBAH
+                </div>
+                {byType.length===0
+                  ? <p style={{color:"var(--muted)",fontSize:12}}>Belum ada data.</p>
+                  : byType.map(t=><MiniBar key={t.id} label={`${t.icon} ${t.label}`} value={t.total} max={maxQ} color={t.color} unit={t.unit}/>)
+                }
+              </div>
+
+              {/* Entri per unit */}
+              <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px"}}>
+                <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:18,letterSpacing:"0.04em"}}>
+                  🏢 ENTRI PER UNIT
+                </div>
+                {byUnit.map((u,i)=>(
+                  <div key={i} style={{
+                    display:"flex",justifyContent:"space-between",alignItems:"center",
+                    padding:"11px 0",borderBottom:"1px solid var(--border)",
+                  }}>
+                    <div>
+                      <span style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{u.name}</span>
+                      {u.fp>0&&<span style={{color:"var(--purple)",fontSize:10,marginLeft:10}}>📷 {u.fp} foto</span>}
+                    </div>
+                    <Badge color="#06B6D4">{u.count} entri</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Donut-style status summary */}
+            <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px",marginBottom:16}}>
+              <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:16,letterSpacing:"0.04em"}}>
+                🔄 STATUS OVERVIEW
+              </div>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                {STATUS_OPT.map(s=>{
+                  const cnt = entries.filter(e=>e.status===s.value).length;
+                  const pct = total>0?Math.round(cnt/total*100):0;
+                  return (
+                    <div key={s.value} style={{
+                      flex:1,minWidth:140,background:s.color+"11",border:`1px solid ${s.color}33`,
+                      borderRadius:10,padding:"16px 18px",
+                    }}>
+                      <div style={{color:s.color,fontSize:24,fontWeight:800,fontFamily:"'JetBrains Mono',monospace"}}>{cnt}</div>
+                      <div style={{color:"var(--text)",fontSize:12,fontWeight:600,marginTop:4}}>{s.label}</div>
+                      <div style={{background:"var(--border)",borderRadius:4,height:5,marginTop:10}}>
+                        <div style={{background:s.color,width:`${pct}%`,height:"100%",borderRadius:4,transition:"width .7s ease"}}/>
+                      </div>
+                      <div style={{color:"var(--dim)",fontSize:10,marginTop:5}}>{pct}% dari total</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Manifest tracker */}
+            <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px"}}>
+              <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:16,letterSpacing:"0.04em"}}>
+                📈 MANIFEST TERBIT
+              </div>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                {entries.filter(e=>e.status==="sudah_diangkut"&&e.manifest).length===0
+                  ? <p style={{color:"var(--muted)",fontSize:12}}>Belum ada manifest yang tercatat.</p>
+                  : entries.filter(e=>e.status==="sudah_diangkut"&&e.manifest).map(e=>{
+                    const t=getType(e.type);
+                    return (
+                      <div key={e.id} style={{
+                        background:"rgba(16,185,129,.08)",border:"1px solid rgba(16,185,129,.25)",
+                        borderRadius:9,padding:"10px 14px",fontSize:11,cursor:"pointer",
+                        transition:"border-color .2s",
+                      }}
+                      onClick={()=>setDetail(entries.find(x=>x.id===e.id))}
+                      onMouseEnter={el=>el.currentTarget.style.borderColor="var(--green)"}
+                      onMouseLeave={el=>el.currentTarget.style.borderColor="rgba(16,185,129,.25)"}
+                      >
+                        <div style={{color:"var(--green)",fontWeight:700}}>{e.manifest}</div>
+                        <div style={{color:"var(--dim)",marginTop:2}}>{t.icon} {t.label}</div>
+                        <div style={{color:"var(--muted)",marginTop:1}}>{e.unit}</div>
+                        {e.photos.length>0&&<div style={{color:"var(--purple)",marginTop:4}}>📷 {e.photos.length}</div>}
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════ INPUT DATA ════════════════ */}
+        {tab==="input"&&(
+          <div style={{maxWidth:720}}>
+            <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:16,padding:32}}>
+              <div style={{color:"var(--amberL)",fontWeight:800,fontSize:16,marginBottom:6,letterSpacing:"0.04em"}}>
+                📝 FORM INPUT LIMBAH B3
+              </div>
+              <div style={{color:"var(--muted)",fontSize:12,marginBottom:28}}>
+                Setiap unit wajib mengisi data limbah B3 sesuai kondisi aktual. Upload foto bukti penyimpanan sebagai dokumentasi resmi.
+              </div>
+
+              {/* Unit */}
+              <div style={{marginBottom:18}}>
+                <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>UNIT PELAPOR *</label>
+                <select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})} style={IS}>
+                  {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+
+              {/* Jenis limbah */}
+              <div style={{marginBottom:18}}>
+                <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>JENIS LIMBAH B3 *</label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+                  {B3_TYPES.map(t=>(
+                    <div key={t.id} onClick={()=>setForm({...form,type:t.id})} className="card-hover" style={{
+                      background: form.type===t.id?t.color+"22":"var(--navyLight)",
+                      border:`1px solid ${form.type===t.id?t.color:"var(--border)"}`,
+                      borderRadius:9,padding:"11px 13px",cursor:"pointer",
+                      display:"flex",alignItems:"center",gap:10,transition:"all .2s",
+                    }}>
+                      <span style={{fontSize:20}}>{t.icon}</span>
+                      <div>
+                        <div style={{color:form.type===t.id?t.color:"var(--text)",fontSize:12,fontWeight:700}}>{t.label}</div>
+                        <div style={{color:"var(--muted)",fontSize:10}}>Satuan: {t.unit}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Qty + Date */}
+              <div className="form-row" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
+                <div>
+                  <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>
+                    JUMLAH ({getType(form.type).unit}) *
+                  </label>
+                  <input type="number" value={form.qty} onChange={e=>setForm({...form,qty:e.target.value})}
+                    placeholder="0" min="0" style={IS}/>
+                </div>
+                <div>
+                  <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>TANGGAL PENCATATAN *</label>
+                  <input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={IS}/>
+                </div>
+              </div>
+
+              {/* Status */}
+              <div style={{marginBottom:18}}>
+                <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>STATUS SAAT INI *</label>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {STATUS_OPT.map(s=>(
+                    <div key={s.value} onClick={()=>setForm({...form,status:s.value})} style={{
+                      flex:1,minWidth:120,
+                      background:form.status===s.value?s.color+"22":"var(--navyLight)",
+                      border:`1px solid ${form.status===s.value?s.color:"var(--border)"}`,
+                      borderRadius:9,padding:"9px 10px",cursor:"pointer",textAlign:"center",
+                      color:form.status===s.value?s.color:"var(--dim)",fontSize:11,fontWeight:700,transition:"all .2s",
+                    }}>{s.label}</div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mitra + Manifest */}
+              <div className="form-row" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
+                <div>
+                  <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>MITRA TRANSPORTER B3</label>
+                  <select value={form.mitra} onChange={e=>setForm({...form,mitra:e.target.value})} style={IS}>
+                    <option value="">-- Belum ditentukan --</option>
+                    {MITRA_OPT.map(m=><option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>NO. MANIFEST</label>
+                  <input type="text" value={form.manifest} onChange={e=>setForm({...form,manifest:e.target.value})}
+                    placeholder="MF-2025-XXXX" style={IS}/>
+                </div>
+              </div>
+
+              {/* Catatan */}
+              <div style={{marginBottom:18}}>
+                <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>CATATAN TAMBAHAN</label>
+                <textarea value={form.catatan} onChange={e=>setForm({...form,catatan:e.target.value})}
+                  placeholder="Kondisi penyimpanan, catatan khusus, dll..." rows={3}
+                  style={{...IS,resize:"vertical"}}/>
+              </div>
+
+              {/* Foto */}
+              <div style={{marginBottom:26}}>
+                <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>
+                  📷 FOTO BUKTI PENYIMPANAN
+                </label>
+                <PhotoUploader photos={form.photos} onChange={p=>setForm({...form,photos:p})}/>
+              </div>
+
+              {/* Preview */}
+              {form.qty>0&&(
+                <div style={{
+                  background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.3)",
+                  borderRadius:10,padding:"14px 18px",marginBottom:22,
+                }}>
+                  <div style={{color:"var(--amber)",fontSize:11,fontWeight:700,marginBottom:6}}>⚠️ PREVIEW DATA</div>
+                  <div style={{color:"var(--dim)",fontSize:12,lineHeight:2}}>
+                    <b style={{color:"var(--text)"}}>{form.unit}</b> melaporkan{" "}
+                    <b style={{color:getType(form.type).color}}>{form.qty} {getType(form.type).unit} {getType(form.type).label}</b>{" "}
+                    pada {fmtDate(form.date)} —{" "}
+                    <b style={{color:getStatus(form.status).color}}>{getStatus(form.status).label}</b>{" "}
+                    — 📷 <b style={{color:"var(--purple)"}}>{form.photos.length} foto</b>
+                  </div>
+                </div>
+              )}
+
+              <button className="btn-amber" onClick={handleSubmit} style={{
+                background:"var(--amber)",color:"var(--navy)",border:"none",borderRadius:10,
+                padding:"13px 28px",fontWeight:800,fontSize:14,cursor:"pointer",
+                width:"100%",letterSpacing:"0.04em",boxShadow:"0 4px 18px rgba(245,158,11,.3)",
+              }}>💾 SIMPAN DATA LIMBAH B3</button>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════ LOG & MANIFEST ════════════════ */}
+        {tab==="log"&&(
+          <div>
+            <div style={{display:"flex",gap:12,marginBottom:18,flexWrap:"wrap",alignItems:"center"}}>
+              <select value={filterUnit} onChange={e=>setFilterUnit(e.target.value)} style={{...IS,width:"auto"}}>
+                <option>Semua Unit</option>
+                {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+              </select>
+              <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{...IS,width:"auto"}}>
+                <option value="semua">Semua Status</option>
+                {STATUS_OPT.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+              <span style={{color:"var(--muted)",fontSize:12}}>
+                Menampilkan <b style={{color:"var(--text)"}}>{filtered.length}</b> dari {entries.length} entri
+              </span>
+            </div>
+
+            <div className="table-wrap" style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,overflow:"hidden"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",minWidth:680}}>
+                <thead>
+                  <tr style={{background:"var(--navyLight)"}}>
+                    {["TANGGAL","UNIT","JENIS LIMBAH","JUMLAH","STATUS","MANIFEST","FOTO","AKSI"].map(h=>(
+                      <th key={h} style={{
+                        color:"var(--muted)",fontSize:10,fontWeight:700,letterSpacing:"0.06em",
+                        padding:"11px 14px",textAlign:"left",whiteSpace:"nowrap",
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((e,i)=>{
+                    const t=getType(e.type), s=getStatus(e.status);
+                    return (
+                      <tr key={e.id} className="row-hover" style={{borderTop:"1px solid var(--border)",cursor:"pointer"}}
+                        onClick={()=>setDetail(e)}>
+                        <td style={{padding:"12px 14px",color:"var(--dim)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(e.date)}</td>
+                        <td style={{padding:"12px 14px",color:"var(--text)",fontSize:12,fontWeight:600}}>{e.unit}</td>
+                        <td style={{padding:"12px 14px",color:t.color,fontSize:11,whiteSpace:"nowrap"}}>{t.icon} {t.label}</td>
+                        <td style={{padding:"12px 14px",fontFamily:"'JetBrains Mono',monospace",fontSize:12,fontWeight:700,color:"var(--text)",whiteSpace:"nowrap"}}>
+                          {e.qty} <span style={{color:"var(--muted)",fontWeight:400,fontSize:10}}>{t.unit}</span>
+                        </td>
+                        <td style={{padding:"12px 14px"}}><Badge color={s.color} small>{s.label.replace("Tersimpan di TPS","Tersimpan").replace("Menunggu Pickup","Menunggu")}</Badge></td>
+                        <td style={{padding:"12px 14px",color:e.manifest?"var(--green)":"var(--muted)",fontSize:11,fontFamily:"'JetBrains Mono',monospace"}}>{e.manifest||"—"}</td>
+                        <td style={{padding:"12px 14px",color:e.photos.length>0?"var(--purple)":"var(--muted)",fontSize:11}}>
+                          {e.photos.length>0?`📷 ${e.photos.length}`:"—"}
+                        </td>
+                        <td style={{padding:"12px 14px"}}>
+                          <button style={{
+                            background:"var(--navyLight)",border:"1px solid var(--border)",color:"var(--dim)",
+                            borderRadius:7,padding:"5px 12px",fontSize:10,cursor:"pointer",
+                            transition:"all .2s", fontWeight:600,
+                          }}
+                          onMouseEnter={e=>e.currentTarget.style.borderColor="var(--amber)"}
+                          onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}
+                          onClick={ev=>{ev.stopPropagation();setDetail(entries.find(x=>x.id===e.id));}}>
+                            Detail →
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filtered.length===0&&(
+                    <tr><td colSpan={8} style={{padding:"28px",textAlign:"center",color:"var(--muted)",fontSize:13}}>Tidak ada data sesuai filter.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════ GALERI FOTO ════════════════ */}
+        {tab==="galeri"&&(
+          <div>
+            <div style={{color:"var(--amberL)",fontWeight:800,fontSize:16,marginBottom:22,letterSpacing:"0.04em"}}>
+              🖼️ GALERI FOTO BUKTI PENYIMPANAN LIMBAH B3
+            </div>
+            {entries.filter(e=>e.photos.length>0).length===0?(
+              <div style={{
+                background:"var(--navyMid)",border:"2px dashed var(--border)",borderRadius:14,
+                padding:"60px 40px",textAlign:"center",
+              }}>
+                <div style={{fontSize:52,marginBottom:14}}>📷</div>
+                <div style={{color:"var(--dim)",fontSize:15,fontWeight:700,marginBottom:8}}>Belum ada foto yang diupload</div>
+                <div style={{color:"var(--muted)",fontSize:12}}>Upload foto melalui Form Input Data saat membuat entri baru</div>
+                <button className="btn-amber" onClick={()=>setTab("input")} style={{
+                  background:"var(--amber)",color:"var(--navy)",border:"none",borderRadius:9,
+                  padding:"11px 24px",fontWeight:800,fontSize:13,cursor:"pointer",marginTop:20,
+                }}>+ Input & Upload Foto</button>
+              </div>
+            ):(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:18}}>
+                {entries.filter(e=>e.photos.length>0).map(e=>{
+                  const t=getType(e.type), s=getStatus(e.status);
+                  return (
+                    <div key={e.id} className="card-hover" style={{
+                      background:"var(--navyMid)",border:"1px solid var(--border)",
+                      borderRadius:14,overflow:"hidden",
+                    }}>
+                      {/* Photos strip */}
+                      <div style={{display:"flex",gap:4,padding:10,background:"var(--navyLight)",overflowX:"auto"}}>
+                        {e.photos.map((p,pi)=>(
+                          <img key={pi} src={p.src} alt={p.name}
+                            onClick={()=>setDetail(entries.find(x=>x.id===e.id))}
+                            style={{
+                              width:95,height:72,objectFit:"cover",borderRadius:7,
+                              border:"1px solid var(--border)",flexShrink:0,cursor:"pointer",
+                              transition:"opacity .2s",
+                            }}
+                            onMouseEnter={ev=>ev.currentTarget.style.opacity=".8"}
+                            onMouseLeave={ev=>ev.currentTarget.style.opacity="1"}
+                          />
+                        ))}
+                      </div>
+                      <div style={{padding:"14px 16px"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                          <span style={{color:t.color,fontSize:13,fontWeight:700}}>{t.icon} {t.label}</span>
+                          <Badge color={s.color} small>{s.label.replace("Tersimpan di TPS","Tersimpan")}</Badge>
+                        </div>
+                        <div style={{color:"var(--dim)",fontSize:11,marginBottom:4}}>{e.unit} · {fmtDate(e.date)}</div>
+                        <div style={{color:"var(--text)",fontSize:13,fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>
+                          {e.qty} <span style={{color:"var(--muted)",fontWeight:400,fontSize:11}}>{t.unit}</span>
+                        </div>
+                        {e.manifest&&<div style={{color:"var(--green)",fontSize:11,marginTop:5}}>📄 {e.manifest}</div>}
+                        <div style={{color:"var(--purple)",fontSize:11,marginTop:4}}>📷 {e.photos.length} foto</div>
+                        <button onClick={()=>setDetail(entries.find(x=>x.id===e.id))} style={{
+                          background:"var(--navyLight)",border:"1px solid var(--border)",color:"var(--dim)",
+                          borderRadius:7,padding:"7px 14px",fontSize:11,cursor:"pointer",
+                          marginTop:12,width:"100%",fontWeight:600,transition:"border-color .2s",
+                        }}
+                        onMouseEnter={ev=>ev.currentTarget.style.borderColor="var(--amber)"}
+                        onMouseLeave={ev=>ev.currentTarget.style.borderColor="var(--border)"}
+                        >Lihat Detail & Foto →</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════ LAPORAN ════════════════ */}
+        {tab==="laporan"&&(
+          <div style={{maxWidth:760}}>
+            <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:28,marginBottom:18}}>
+              <div style={{color:"var(--amberL)",fontWeight:800,fontSize:16,marginBottom:20,letterSpacing:"0.04em"}}>
+                📄 RINGKASAN LAPORAN B3 — {new Date().getFullYear()}
+              </div>
+
+              {/* Compliance table */}
+              <div className="table-wrap" style={{background:"var(--navyLight)",borderRadius:10,overflow:"hidden",marginBottom:22}}>
+                <table style={{width:"100%",borderCollapse:"collapse",minWidth:520}}>
+                  <thead>
+                    <tr style={{background:"var(--border)"}}>
+                      {["JENIS LIMBAH","TOTAL VOLUME","TERANGKUT","COMPLIANCE","FOTO"].map(h=>(
+                        <th key={h} style={{color:"var(--muted)",fontSize:10,fontWeight:700,letterSpacing:"0.06em",padding:"11px 14px",textAlign:"left"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {byType.map((t,i)=>{
+                      const angkut = entries.filter(e=>e.type===t.id&&e.status==="sudah_diangkut").reduce((s,e)=>s+e.qty,0);
+                      const pct    = t.total>0?Math.round(angkut/t.total*100):0;
+                      const fp     = entries.filter(e=>e.type===t.id&&e.photos.length>0).length;
+                      const pColor = pct===100?"var(--green)":pct>=50?"var(--amber)":"var(--red)";
+                      return (
+                        <tr key={t.id} style={{borderTop:"1px solid var(--border)",background:i%2===0?"transparent":"rgba(10,22,40,.4)"}}>
+                          <td style={{padding:"11px 14px",color:t.color,fontSize:12}}>{t.icon} {t.label}</td>
+                          <td style={{padding:"11px 14px",color:"var(--text)",fontSize:12,fontFamily:"'JetBrains Mono',monospace",fontWeight:700}}>{t.total} <span style={{color:"var(--muted)",fontWeight:400,fontSize:10}}>{t.unit}</span></td>
+                          <td style={{padding:"11px 14px",color:"var(--green)",fontSize:12,fontFamily:"'JetBrains Mono',monospace",fontWeight:700}}>{angkut} <span style={{color:"var(--muted)",fontWeight:400,fontSize:10}}>{t.unit}</span></td>
+                          <td style={{padding:"11px 14px"}}>
+                            <span style={{color:pColor,fontSize:13,fontWeight:800,fontFamily:"'JetBrains Mono',monospace"}}>{pct}%</span>
+                          </td>
+                          <td style={{padding:"11px 14px",color:fp>0?"var(--purple)":"var(--muted)",fontSize:11}}>
+                            {fp>0?`📷 ${fp}`:"—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* KPI Cards */}
+              <div className="kpi-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12}}>
+                {[
+                  {label:"Compliance Rate",     value:`${total?Math.round(diangkut/total*100):0}%`, color:"var(--green)",  desc:"Sudah diangkut mitra"},
+                  {label:"Manifest Terbit",     value:entries.filter(e=>e.manifest).length,          color:"var(--blue)",   desc:"Dokumen tercatat"},
+                  {label:"Bukti Foto",          value:withPhoto,                                     color:"var(--purple)", desc:"Entri terdokumentasi"},
+                  {label:"Perlu Tindak Lanjut", value:tersimpan+menunggu,                            color:(tersimpan+menunggu)>3?"var(--red)":"var(--amber)", desc:"Belum diangkut"},
+                ].map((k,i)=>(
+                  <div key={i} style={{background:"var(--navyLight)",border:"1px solid var(--border)",borderRadius:10,padding:"18px 14px",textAlign:"center"}}>
+                    <div style={{color:k.color,fontSize:26,fontWeight:800,fontFamily:"'JetBrains Mono',monospace"}}>{k.value}</div>
+                    <div style={{color:"var(--text)",fontSize:11,fontWeight:700,marginTop:5}}>{k.label}</div>
+                    <div style={{color:"var(--muted)",fontSize:10,marginTop:3}}>{k.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Alert */}
+            {(menunggu>0||tersimpan>0)&&(
+              <div style={{background:"rgba(239,68,68,.07)",border:"1px solid rgba(239,68,68,.3)",borderRadius:12,padding:"18px 22px"}}>
+                <div style={{color:"var(--red)",fontWeight:700,fontSize:13,marginBottom:12}}>
+                  ⚠️ ITEM PERLU TINDAK LANJUT SEGERA
+                </div>
+                {entries.filter(e=>e.status!=="sudah_diangkut").map(e=>{
+                  const t=getType(e.type), s=getStatus(e.status);
+                  return (
+                    <div key={e.id} style={{
+                      display:"flex",gap:10,alignItems:"center",
+                      color:"var(--dim)",fontSize:12,padding:"6px 0",
+                      borderBottom:"1px solid var(--border)",flexWrap:"wrap",
+                    }}>
+                      <span>{t.icon}</span>
+                      <b style={{color:"var(--text)"}}>{e.unit}</b>
+                      <span>—</span>
+                      <span>{t.label} {e.qty} {t.unit}</span>
+                      <span>—</span>
+                      <Badge color={s.color} small>{s.label}</Badge>
+                      {e.photos.length===0&&<span style={{color:"var(--amber)",fontSize:10}}>⚠️ Belum ada foto</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer style={{
+        borderTop:"1px solid var(--border)",padding:"14px 28px",
+        display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8,
+        color:"var(--muted)",fontSize:10,background:"var(--navyMid)",
+      }}>
+        <span>SISTEM PENGELOLAAN LIMBAH B3 · MITRA: PT SETIA UTAMA NUSANTARA</span>
+        <span>Solid Waste Diverted · GHG Reduction · PT MARGA MANDALASAKTI {new Date().getFullYear()}</span>
+      </footer>
+
+      {/* ── DETAIL MODAL ── */}
+      {detail&&(
+        <DetailModal
+          entry={detail}
+          onClose={()=>setDetail(null)}
+          onUpdateStatus={(id,s)=>updateStatus(id,s)}
+          onUpdateManifest={(id,m)=>updateManifest(id,m)}
+          onAddPhoto={(id,p)=>addPhoto(id,p)}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
