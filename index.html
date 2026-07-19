@@ -429,7 +429,32 @@ function App() {
   const updateStatus   = (id,s) => setEntries(prev=>prev.map(e=>e.id===id?{...e,status:s}:e));
   const updateManifest = (id,m) => setEntries(prev=>prev.map(e=>e.id===id?{...e,manifest:m}:e));
   const addPhoto       = (id,p) => setEntries(prev=>prev.map(e=>e.id===id?{...e,photos:[...e.photos,p]}:e));
+const handleHapusLogbook = async (idData) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus data logbook ini?")) return;
 
+    try {
+      const response = await fetch(SPREADSHEET_WEBAPP_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "delete",
+          data: { id: idData }
+        })
+      });
+      
+      const resData = await response.json();
+      
+      if (resData.status === "success") {
+        // Hapus data dari tampilan aplikasi secara realtime
+        setEntries(prev => prev.filter(e => e.id !== idData));
+        showToast("🗑️ Data berhasil dihapus!");
+      } else {
+        alert("Gagal menghapus: " + resData.message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan jaringan.");
+    }
+  };
   // When detail entry changes in entries, sync
   useEffect(()=>{
     if(detail) setDetail(entries.find(e=>e.id===detail.id)||null);
@@ -797,6 +822,16 @@ function App() {
                           onClick={ev=>{ev.stopPropagation();setDetail(entries.find(x=>x.id===e.id));}}>
                             Detail →
                           </button>
+                         <button 
+  onClick={(ev)=>{ev.stopPropagation(); handleHapusLogbook(e.id);}}
+  style={{
+    background:"#EF4444", border:"1px solid #EF4444", color:"white",
+    borderRadius:7, padding:"5px 12px", fontSize:10, cursor:"pointer",
+    transition:"all .2s", fontWeight:600, marginTop:5, display:"block", width:"100%"
+  }}
+>
+  🗑️ Hapus
+</button>
                         </td>
                       </tr>
                     );
