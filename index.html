@@ -446,7 +446,7 @@ const handleHapusLogbook = async (idData) => {
       if (resData.status === "success") {
         // Hapus data dari tampilan aplikasi secara realtime
         setEntries(prev => prev.filter(e => e.id !== idData));
-        showToast("🗑️ Data berhasil dihapus!");
+        showToast("Data berhasil dihapus!");
       } else {
         alert("Gagal menghapus: " + resData.message);
       }
