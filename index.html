@@ -433,8 +433,12 @@ const handleHapusLogbook = async (idData) => {
     if (!confirm("Apakah Anda yakin ingin menghapus data logbook ini?")) return;
 
     try {
+      // Menggunakan URLSearchParams agar tidak memicu masalah CORS/Jaringan di Apps Script
       const response = await fetch(SPREADSHEET_WEBAPP_URL, {
         method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
         body: JSON.stringify({
           action: "delete",
           data: { id: idData }
@@ -444,9 +448,8 @@ const handleHapusLogbook = async (idData) => {
       const resData = await response.json();
       
       if (resData.status === "success") {
-        // Hapus data dari tampilan aplikasi secara realtime
         setEntries(prev => prev.filter(e => e.id !== idData));
-        showToast("Data berhasil dihapus!");
+        showToast("Data logbook berhasil dihapus!");
       } else {
         alert("Gagal menghapus: " + resData.message);
       }
@@ -454,8 +457,7 @@ const handleHapusLogbook = async (idData) => {
       console.error("Error:", error);
       alert("Terjadi kesalahan jaringan.");
     }
-  };
-  // When detail entry changes in entries, sync
+  };  // When detail entry changes in entries, sync
   useEffect(()=>{
     if(detail) setDetail(entries.find(e=>e.id===detail.id)||null);
   },[entries]);
