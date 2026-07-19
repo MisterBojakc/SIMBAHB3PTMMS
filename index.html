@@ -433,18 +433,22 @@ const handleHapusLogbook = async (idData) => {
     if (!confirm("Apakah Anda yakin ingin menghapus data logbook ini?")) return;
 
     try {
-      // Menggunakan URLSearchParams agar tidak memicu masalah CORS/Jaringan di Apps Script
-      const response = await fetch(SPREADSHEET_WEBAPP_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8",
-        },
-        body: JSON.stringify({
-          action: "delete",
-          data: { id: idData }
-        })
-      });
+      // Menggunakan metode GET dengan parameter URL untuk menghindari blokir jaringan CORS
+      const urlHapus = `${SPREADSHEET_WEBAPP_URL}?action=delete&id=${idData}`;
+      const response = await fetch(urlHapus, { method: "GET" });
+      const resData = await response.json();
       
+      if (resData.status === "success") {
+        setEntries(prev => prev.filter(e => e.id !== idData));
+        showToast("Data logbook berhasil dihapus!");
+      } else {
+        alert("Gagal menghapus: " + resData.message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan jaringan.");
+    }
+  };      
       const resData = await response.json();
       
       if (resData.status === "success") {
