@@ -429,26 +429,27 @@ function App() {
   const updateStatus   = (id,s) => setEntries(prev=>prev.map(e=>e.id===id?{...e,status:s}:e));
   const updateManifest = (id,m) => setEntries(prev=>prev.map(e=>e.id===id?{...e,manifest:m}:e));
   const addPhoto       = (id,p) => setEntries(prev=>prev.map(e=>e.id===id?{...e,photos:[...e.photos,p]}:e));
-const handleHapusLogbook = async (idData) => {
+const handleHapusLogbook = (idData) => {
     if (!confirm("Apakah Anda yakin ingin menghapus data logbook ini?")) return;
 
-    try {
-      // Menggunakan metode GET dengan parameter URL untuk menghindari blokir jaringan CORS
-      const urlHapus = `${SPREADSHEET_WEBAPP_URL}?action=delete&id=${idData}`;
-      const response = await fetch(urlHapus, { method: "GET" });
-      const resData = await response.json();
-      
-      if (resData.status === "success") {
-        setEntries(prev => prev.filter(e => e.id !== idData));
-        showToast("Data logbook berhasil dihapus!");
-      } else {
-        alert("Gagal menghapus: " + resData.message);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Terjadi kesalahan jaringan.");
-    }
-  };      
+    // Menggabungkan URL tanpa memicu error Babel di HP
+    const urlHapus = SPREADSHEET_WEBAPP_URL + "?action=delete&id=" + idData;
+
+    fetch(urlHapus, { method: "GET" })
+      .then(response => response.json())
+      .then(resData => {
+        if (resData.status === "success") {
+          setEntries(prev => prev.filter(e => e.id !== idData));
+          showToast("Data logbook berhasil dihapus!");
+        } else {
+          alert("Gagal menghapus: " + resData.message);
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        alert("Terjadi kesalahan jaringan.");
+      });
+  };       
       const resData = await response.json();
       
       if (resData.status === "success") {
