@@ -449,19 +449,7 @@ const handleHapusLogbook = (idData) => {
         console.error("Error:", error);
         alert("Terjadi kesalahan jaringan.");
       });
-  };       
-      const resData = await response.json();
-      
-      if (resData.status === "success") {
-        setEntries(prev => prev.filter(e => e.id !== idData));
-        showToast("Data logbook berhasil dihapus!");
-      } else {
-        alert("Gagal menghapus: " + resData.message);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Terjadi kesalahan jaringan.");
-    }
+  };    
   };  // When detail entry changes in entries, sync
   useEffect(()=>{
     if(detail) setDetail(entries.find(e=>e.id===detail.id)||null);
