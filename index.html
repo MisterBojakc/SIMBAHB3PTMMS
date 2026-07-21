@@ -38,26 +38,18 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
   select, input, textarea, button { font-family: 'Sora', sans-serif; }
 
-  /* Animations */
   @keyframes fadeIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
   @keyframes slideIn { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
-  @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.5; } }
-  @keyframes scanline { 0% { top:-8%; } 100% { top:108%; } }
-
   .fade-in  { animation: fadeIn .35s ease both; }
   .slide-in { animation: slideIn .3s ease both; }
 
-  /* Hover effects */
   .btn-amber:hover { filter: brightness(1.12); transform: translateY(-1px); }
   .btn-amber { transition: all .18s; }
   .card-hover:hover { border-color: var(--amber) !important; }
   .card-hover { transition: border-color .2s; }
   .row-hover:hover { background: rgba(30,58,95,.45) !important; }
-
-  /* Scrollable table wrapper */
   .table-wrap { overflow-x: auto; }
 
-  /* Responsive */
   @media (max-width: 768px) {
     .stat-grid { flex-direction: column !important; }
     .two-col   { grid-template-columns: 1fr !important; }
@@ -74,7 +66,9 @@
 <script type="text/babel">
 const { useState, useRef, useEffect } = React;
 
-// ─── MASTER DATA ──────────────────────────────────────────────────────────────
+// 🔗 URL APPS SCRIPT
+const SPREADSHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzArjCuEKyUBZexpKc1qo-Gh-FwG_MJRn87IzNK9oN-8dalQWOfOLN80BGFvLM3MVqAvQ/exec";
+
 const UNITS = ["Layanan Transaksi Tol","HS","IT","Medis"];
 
 const B3_TYPES = [
@@ -98,22 +92,14 @@ const MITRA_OPT = ["PT Setia Utama Nusantara"];
 
 const INIT = [
   { id:1, unit:"Layanan Transaksi Tol", type:"lampu_tl",            qty:24,  date:"2025-03-10", status:"sudah_diangkut",  mitra:"PT Setia Utama Nusantara", manifest:"MF-2025-0031", catatan:"Lampu gardu utama",      photos:[] },
-  { id:2, unit:"IT",                    type:"elektronik",           qty:35,  date:"2025-03-18", status:"sudah_diangkut",  mitra:"PT Setia Utama Nusantara", manifest:"MF-2025-0044", catatan:"Monitor & UPS rusak",    photos:[] },
-  { id:3, unit:"Medis",                 type:"obat_kadaluarsa",      qty:8,   date:"2025-04-01", status:"sudah_diangkut",  mitra:"PT Setia Utama Nusantara", manifest:"MF-2025-0059", catatan:"Obat P3K kadaluarsa",    photos:[] },
-  { id:4, unit:"HS",                    type:"oli_bekas",            qty:120, date:"2025-04-05", status:"menunggu_pickup", mitra:"PT Setia Utama Nusantara", manifest:"",              catatan:"Menunggu jadwal pickup", photos:[] },
-  { id:5, unit:"Layanan Transaksi Tol", type:"majun_terkontaminasi", qty:12,  date:"2025-04-07", status:"tersimpan",       mitra:"",                         manifest:"",              catatan:"",                       photos:[] },
-  { id:6, unit:"IT",                    type:"aki_bekas",            qty:6,   date:"2025-04-09", status:"menunggu_pickup", mitra:"PT Setia Utama Nusantara", manifest:"",              catatan:"UPS server lama",        photos:[] },
-  { id:7, unit:"Medis",                 type:"kemasan_b3",           qty:20,  date:"2025-04-10", status:"tersimpan",       mitra:"",                         manifest:"",              catatan:"",                       photos:[] },
-  { id:8, unit:"HS",                    type:"lampu_tl",             qty:18,  date:"2025-04-11", status:"tersimpan",       mitra:"",                         manifest:"",              catatan:"Akan digabung",          photos:[] },
+  { id:2, unit:"IT",                    type:"elektronik",           qty:35,  date:"2025-03-18", status:"sudah_diangkut",  mitra:"PT Setia Utama Nusantara", manifest:"MF-2025-0044", catatan:"Monitor & UPS rusak",    photos:[] }
 ];
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
 const getType   = id => B3_TYPES.find(t=>t.id===id)||B3_TYPES[0];
 const getStatus = v  => STATUS_OPT.find(s=>s.value===v)||STATUS_OPT[0];
 const fmtDate   = d  => new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"});
 const fmtNow    = ()  => new Date().toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"});
 
-// ─── BADGE ────────────────────────────────────────────────────────────────────
 const Badge = ({color,children,small}) => (
   <span style={{
     background:color+"22", color, border:`1px solid ${color}55`,
@@ -122,7 +108,6 @@ const Badge = ({color,children,small}) => (
   }}>{children}</span>
 );
 
-// ─── STAT CARD ────────────────────────────────────────────────────────────────
 const StatCard = ({label,value,sub,color,icon}) => (
   <div className="card-hover" style={{
     background:"var(--navyMid)", border:"1px solid var(--border)",
@@ -136,7 +121,6 @@ const StatCard = ({label,value,sub,color,icon}) => (
   </div>
 );
 
-// ─── MINI BAR ─────────────────────────────────────────────────────────────────
 const MiniBar = ({label,value,max,color,unit}) => (
   <div style={{marginBottom:12}}>
     <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
@@ -149,14 +133,12 @@ const MiniBar = ({label,value,max,color,unit}) => (
   </div>
 );
 
-// ─── INPUT STYLE ──────────────────────────────────────────────────────────────
 const IS = {
   background:"var(--navyLight)", border:"1px solid var(--border)", borderRadius:8,
   color:"var(--text)", padding:"10px 13px", fontSize:13, width:"100%", outline:"none",
   fontFamily:"'Sora',sans-serif",
 };
 
-// ─── PHOTO UPLOADER ───────────────────────────────────────────────────────────
 const PhotoUploader = ({photos, onChange}) => {
   const ref = useRef();
   const [drag, setDrag] = useState(false);
@@ -196,7 +178,7 @@ const PhotoUploader = ({photos, onChange}) => {
       >
         <div style={{fontSize:30,marginBottom:6}}>📷</div>
         <div style={{color:"var(--amber)",fontSize:13,fontWeight:700}}>Klik atau Drop Foto di Sini</div>
-        <div style={{color:"var(--muted)",fontSize:11,marginTop:4}}>JPG, PNG, HEIC · Bisa pilih beberapa sekaligus</div>
+        <div style={{color:"var(--muted)",fontSize:11,marginTop:4}}>Ukuran sangat kecil disarankan (Maks sel terbatas)</div>
       </div>
       <input ref={ref} type="file" accept="image/*" multiple style={{display:"none"}}
         onChange={e=>{readFiles(e.target.files);e.target.value="";}}/>
@@ -221,7 +203,6 @@ const PhotoUploader = ({photos, onChange}) => {
   );
 };
 
-// ─── LIGHTBOX ─────────────────────────────────────────────────────────────────
 const Lightbox = ({photos,startIdx,onClose}) => {
   const [idx,setIdx] = useState(startIdx);
   useEffect(()=>{
@@ -263,8 +244,7 @@ const Lightbox = ({photos,startIdx,onClose}) => {
   );
 };
 
-// ─── DETAIL MODAL ─────────────────────────────────────────────────────────────
-const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto}) => {
+const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto,onDelete}) => {
   const t = getType(entry.type), s = getStatus(entry.status);
   const [lb,setLb]     = useState(null);
   const [mf,setMf]     = useState(entry.manifest);
@@ -273,7 +253,6 @@ const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto})
   const readFile = f => {
     const r = new FileReader();
     r.onload = ev => onAddPhoto(entry.id, {src: ev.target.result, name: f.name, ts: Date.now()});
-    r.onerror = () => console.warn("Gagal membaca file:", f.name);
     r.readAsDataURL(f);
   };
 
@@ -286,7 +265,6 @@ const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto})
         background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:16,
         padding:28,width:540,maxWidth:"100%",maxHeight:"90vh",overflowY:"auto",
       }}>
-        {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
           <div>
             <div style={{color:t.color,fontSize:20,fontWeight:800,marginBottom:4}}>{t.icon} {t.label}</div>
@@ -295,7 +273,6 @@ const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto})
           <button onClick={onClose} style={{background:"transparent",border:"none",color:"var(--muted)",fontSize:22,cursor:"pointer"}}>✕</button>
         </div>
 
-        {/* Info */}
         {[
           ["Jumlah",            `${entry.qty} ${t.unit}`],
           ["Status",            <Badge color={s.color}>{s.label}</Badge>],
@@ -308,7 +285,6 @@ const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto})
           </div>
         ))}
 
-        {/* Manifest */}
         <div style={{padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
           <div style={{color:"var(--muted)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",marginBottom:8}}>NO. MANIFEST</div>
           <div style={{display:"flex",gap:8}}>
@@ -320,30 +296,35 @@ const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto})
           </div>
         </div>
 
-        {/* Status actions */}
-        <div style={{display:"flex",gap:8,padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
-          {entry.status==="tersimpan"&&(
-            <button onClick={()=>{onUpdateStatus(entry.id,"menunggu_pickup");onClose();}} style={{
-              background:"rgba(59,130,246,.15)",border:"1px solid rgba(59,130,246,.4)",color:"var(--blue)",
-              borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:12,fontWeight:700,
-            }}>⏳ Request Pickup</button>
-          )}
-          {entry.status==="menunggu_pickup"&&(
-            <button onClick={()=>{onUpdateStatus(entry.id,"sudah_diangkut");onClose();}} style={{
-              background:"rgba(16,185,129,.15)",border:"1px solid rgba(16,185,129,.4)",color:"var(--green)",
-              borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:12,fontWeight:700,
-            }}>✅ Konfirmasi Sudah Diangkut</button>
-          )}
-          {entry.status==="sudah_diangkut"&&(
-            <span style={{color:"var(--green)",fontSize:12,alignSelf:"center"}}>✅ Proses Selesai</span>
-          )}
+        <div style={{display:"flex",justify:"space-between",alignItems:"center",padding:"14px 0",borderBottom:"1px solid var(--border)",flexWrap:"wrap",gap:8}}>
+          <div style={{display:"flex",gap:8}}>
+            {entry.status==="tersimpan"&&(
+              <button onClick={()=>{onUpdateStatus(entry.id,"menunggu_pickup");onClose();}} style={{
+                background:"rgba(59,130,246,.15)",border:"1px solid rgba(59,130,246,.4)",color:"var(--blue)",
+                borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:12,fontWeight:700,
+              }}>⏳ Request Pickup</button>
+            )}
+            {entry.status==="menunggu_pickup"&&(
+              <button onClick={()=>{onUpdateStatus(entry.id,"sudah_diangkut");onClose();}} style={{
+                background:"rgba(16,185,129,.15)",border:"1px solid rgba(16,185,129,.4)",color:"var(--green)",
+                borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:12,fontWeight:700,
+              }}>✅ Konfirmasi Sudah Diangkut</button>
+            )}
+            {entry.status==="sudah_diangkut"&&(
+              <span style={{color:"var(--green)",fontSize:12,alignSelf:"center"}}>✅ Proses Selesai</span>
+            )}
+          </div>
+
+          <button onClick={()=>{ onDelete(entry.id); onClose(); }} style={{
+            background:"rgba(239,68,68,.15)",border:"1px solid rgba(239,68,68,.4)",color:"var(--red)",
+            borderRadius:8,padding:"9px 16px",cursor:"pointer",fontSize:12,fontWeight:700,
+          }}>🗑️ Hapus Data Ini</button>
         </div>
 
-        {/* Photos */}
         <div style={{paddingTop:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{color:"var(--amberL)",fontSize:12,fontWeight:700,letterSpacing:"0.04em"}}>
-              📷 FOTO BUKTI ({entry.photos.length})
+              📷 FOTO BUKTI ({entry.photos ? entry.photos.length : 0})
             </div>
             <button onClick={()=>fileRef.current.click()} style={{
               background:"rgba(245,158,11,.12)",border:"1px solid rgba(245,158,11,.3)",color:"var(--amber)",
@@ -352,7 +333,7 @@ const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto})
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple style={{display:"none"}}
             onChange={e=>{Array.from(e.target.files).forEach(readFile);e.target.value="";}}/>
-          {entry.photos.length===0
+          {!entry.photos || entry.photos.length===0
             ? <div style={{color:"var(--muted)",fontSize:12,fontStyle:"italic",padding:"12px 0"}}>Belum ada foto.</div>
             : <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                 {entry.photos.map((p,i)=>(
@@ -369,35 +350,49 @@ const DetailModal = ({entry,onClose,onUpdateStatus,onUpdateManifest,onAddPhoto})
               </div>
           }
         </div>
-
         {lb!==null&&<Lightbox photos={entry.photos} startIdx={lb} onClose={()=>setLb(null)}/>}
       </div>
     </div>
   );
 };
 
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App() {
   const [tab,setTab]               = useState("dashboard");
   const [entries,setEntries]       = useState(INIT);
   const [filterUnit,setFilterUnit] = useState("Semua Unit");
   const [filterStatus,setFilterStatus] = useState("semua");
   const [toast,setToast]           = useState("");
-  const [nextId,setNextId]         = useState(INIT.length+1);
+  const [nextId,setNextId]         = useState(3);
   const [detail,setDetail]         = useState(null);
-  const [mobileNav,setMobileNav]   = useState(false);
+  const [loading,setLoading]       = useState(false);
 
   const blankForm = { unit:UNITS[0], type:B3_TYPES[0].id, qty:"",
     date:new Date().toISOString().split("T")[0],
     status:"tersimpan", mitra:"", manifest:"", catatan:"", photos:[] };
   const [form,setForm] = useState(blankForm);
 
-  // Computed
+  // 📥 AMBIL DATA DARI GOOGLE SPREADSHEET
+  useEffect(() => {
+    if (!SPREADSHEET_WEBAPP_URL || SPREADSHEET_WEBAPP_URL.includes("PASTE_URL")) return;
+    setLoading(true);
+    fetch(SPREADSHEET_WEBAPP_URL)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          setEntries(data);
+          const maxId = Math.max(...data.map(e => e.id), 2);
+          setNextId(maxId + 1);
+        }
+      })
+      .catch(err => console.error("Error memuat database spreadsheet:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
   const total     = entries.length;
   const diangkut  = entries.filter(e=>e.status==="sudah_diangkut").length;
   const menunggu  = entries.filter(e=>e.status==="menunggu_pickup").length;
   const tersimpan = entries.filter(e=>e.status==="tersimpan").length;
-  const withPhoto = entries.filter(e=>e.photos.length>0).length;
+  const withPhoto = entries.filter(e=>e.photos && e.photos.length>0).length;
 
   const byType = B3_TYPES.map(t=>({
     ...t,
@@ -408,7 +403,7 @@ function App() {
   const byUnit = UNITS.map(u=>({
     name:u,
     count: entries.filter(e=>e.unit===u).length,
-    fp:    entries.filter(e=>e.unit===u&&e.photos.length>0).length,
+    fp:    entries.filter(e=>e.unit===u && e.photos && e.photos.length>0).length,
   })).sort((a,b)=>b.count-a.count);
 
   const filtered = entries
@@ -417,19 +412,36 @@ function App() {
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),4200); };
 
+  // 📤 KIRIM ENTRI BARU KE SPREADSHEET
   const handleSubmit = () => {
     if(!form.qty||isNaN(form.qty)||Number(form.qty)<=0){ alert("Masukkan jumlah yang valid."); return; }
-    setEntries(prev=>[...prev,{...form,id:nextId,qty:Number(form.qty)}]);
+    const newEntry = {...form, id:nextId, qty:Number(form.qty)};
+    
+    setEntries(prev=>[...prev, newEntry]);
     setNextId(n=>n+1);
     setForm(blankForm);
     showToast("✅ Data limbah B3 berhasil disimpan!");
     setTab("log");
+
+    if (SPREADSHEET_WEBAPP_URL && !SPREADSHEET_WEBAPP_URL.includes("PASTE_URL")) {
+      fetch(SPREADSHEET_WEBAPP_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "create", data: newEntry })
+      }).catch(err => console.error("Gagal simpan ke spreadsheet:", err));
+    }
   };
 
-  const updateStatus   = (id,s) => setEntries(prev=>prev.map(e=>e.id===id?{...e,status:s}:e));
-  const updateManifest = (id,m) => setEntries(prev=>prev.map(e=>e.id===id?{...e,manifest:m}:e));
-  const addPhoto       = (id,p) => setEntries(prev=>prev.map(e=>e.id===id?{...e,photos:[...e.photos,p]}:e));
-  
+  // 🔄 UPDATE ENTRI DI SPREADSHEET
+  const syncUpdate = (updatedEntry) => {
+    if (SPREADSHEET_WEBAPP_URL && !SPREADSHEET_WEBAPP_URL.includes("PASTE_URL")) {
+      fetch(SPREADSHEET_WEBAPP_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "update", data: updatedEntry })
+      }).catch(err => console.error("Gagal sinkronisasi data:", err));
+    }
+  };
+
+  // 🗑️ FUNGSI HAPUS DATA DARI SPREADSHEET & STATE LOKAL
   const handleHapusLogbook = (idData) => {
     if (!confirm("Apakah Anda yakin ingin menghapus data logbook ini?")) return;
 
@@ -451,10 +463,41 @@ function App() {
       });
   };
 
+  const updateStatus = (id,s) => {
+    setEntries(prev=>prev.map(e=>{
+      if(e.id===id) {
+        const u = {...e,status:s};
+        syncUpdate(u); return u;
+      }
+      return e;
+    }));
+  };
+
+  const updateManifest = (id,m) => {
+    setEntries(prev=>prev.map(e=>{
+      if(e.id===id) {
+        const u = {...e,manifest:m};
+        syncUpdate(u); return u;
+      }
+      return e;
+    }));
+  };
+
+  const addPhoto = (id,p) => {
+    setEntries(prev=>prev.map(e=>{
+      if(e.id===id) {
+        const u = {...e,photos:[...(e.photos||[]),p]};
+        syncUpdate(u); return u;
+      }
+      return e;
+    }));
+  };
+
   // When detail entry changes in entries, sync
   useEffect(()=>{
     if(detail) setDetail(entries.find(e=>e.id===detail.id)||null);
   },[entries]);
+
   const TABS = [
     {id:"dashboard", label:"📊 Dashboard"},
     {id:"input",     label:"📝 Input Data"},
@@ -464,7 +507,7 @@ function App() {
   ];
 
   const NavBtn = ({t}) => (
-    <button onClick={()=>{setTab(t.id);setMobileNav(false);}} style={{
+    <button onClick={()=>setTab(t.id)} style={{
       background: tab===t.id?"var(--amber)":"transparent",
       color: tab===t.id?"var(--navy)":"var(--dim)",
       border:"none", borderRadius:8, padding:"9px 18px",
@@ -475,8 +518,6 @@ function App() {
 
   return (
     <div style={{minHeight:"100vh",background:"var(--navy)",display:"flex",flexDirection:"column"}}>
-
-      {/* ── HEADER ── */}
       <header style={{background:"var(--navyMid)",borderBottom:"1px solid var(--border)",position:"sticky",top:0,zIndex:100}}>
         <div style={{padding:"16px 28px"}}>
           <div className="header-flex" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
@@ -491,7 +532,7 @@ function App() {
                   SISTEM PENGELOLAAN LIMBAH B3
                 </div>
                 <div style={{color:"var(--muted)",fontSize:10,letterSpacing:"0.07em"}}>
-                  PT MARGA MANDALASAKTI · SOLID WASTE DIVERTED
+                  PT MARGA MANDALASAKTI · SOLID WASTE DIVERTED {loading && "· 🔄 MENYINGKRONKAN..."}
                 </div>
               </div>
             </div>
@@ -507,15 +548,12 @@ function App() {
               }}>+ Input Limbah B3</button>
             </div>
           </div>
-
-          {/* Nav */}
           <nav className="nav-tabs" style={{display:"flex",gap:4,marginTop:14,overflowX:"auto"}}>
             {TABS.map(t=><NavBtn key={t.id} t={t}/>)}
           </nav>
         </div>
       </header>
 
-      {/* ── TOAST ── */}
       {toast&&(
         <div style={{
           background:"rgba(16,185,129,.12)",borderBottom:"1px solid rgba(16,185,129,.4)",
@@ -524,13 +562,10 @@ function App() {
         }}>{toast}</div>
       )}
 
-      {/* ── CONTENT ── */}
       <main style={{padding:"28px 28px",flex:1}} className="fade-in">
-
-        {/* ════════════════ DASHBOARD ════════════════ */}
+        {/* DASHBOARD */}
         {tab==="dashboard"&&(
           <div>
-            {/* Stats */}
             <div className="stat-grid" style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:24}}>
               <StatCard label="Total Entri"       value={total}     sub="Seluruh unit"              color="#06B6D4" icon="📂"/>
               <StatCard label="Sudah Diangkut"    value={diangkut}  sub="Terangkut mitra berizin"  color="#10B981" icon="✅"/>
@@ -539,9 +574,7 @@ function App() {
               <StatCard label="Ada Bukti Foto"    value={withPhoto} sub="Entri terdokumentasi"      color="#A78BFA" icon="📷"/>
             </div>
 
-            {/* Charts row */}
             <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-              {/* Volume per jenis */}
               <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px"}}>
                 <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:18,letterSpacing:"0.04em"}}>
                   📊 VOLUME PER JENIS LIMBAH
@@ -552,7 +585,6 @@ function App() {
                 }
               </div>
 
-              {/* Entri per unit */}
               <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px"}}>
                 <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:18,letterSpacing:"0.04em"}}>
                   🏢 ENTRI PER UNIT
@@ -572,7 +604,6 @@ function App() {
               </div>
             </div>
 
-            {/* Donut-style status summary */}
             <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px",marginBottom:16}}>
               <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:16,letterSpacing:"0.04em"}}>
                 🔄 STATUS OVERVIEW
@@ -598,7 +629,6 @@ function App() {
               </div>
             </div>
 
-            {/* Manifest tracker */}
             <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:"22px 24px"}}>
               <div style={{color:"var(--amberL)",fontWeight:700,fontSize:13,marginBottom:16,letterSpacing:"0.04em"}}>
                 📈 MANIFEST TERBIT
@@ -621,7 +651,7 @@ function App() {
                         <div style={{color:"var(--green)",fontWeight:700}}>{e.manifest}</div>
                         <div style={{color:"var(--dim)",marginTop:2}}>{t.icon} {t.label}</div>
                         <div style={{color:"var(--muted)",marginTop:1}}>{e.unit}</div>
-                        {e.photos.length>0&&<div style={{color:"var(--purple)",marginTop:4}}>📷 {e.photos.length}</div>}
+                        {e.photos && e.photos.length>0&&<div style={{color:"var(--purple)",marginTop:4}}>📷 {e.photos.length}</div>}
                       </div>
                     );
                   })
@@ -631,7 +661,7 @@ function App() {
           </div>
         )}
 
-        {/* ════════════════ INPUT DATA ════════════════ */}
+        {/* INPUT DATA */}
         {tab==="input"&&(
           <div style={{maxWidth:720}}>
             <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:16,padding:32}}>
@@ -639,10 +669,9 @@ function App() {
                 📝 FORM INPUT LIMBAH B3
               </div>
               <div style={{color:"var(--muted)",fontSize:12,marginBottom:28}}>
-                Setiap unit wajib mengisi data limbah B3 sesuai kondisi aktual. Upload foto bukti penyimpanan sebagai dokumentasi resmi.
+                Setiap unit wajib mengisi data limbah B3 sesuai kondisi aktual. Data otomatis tersimpan ke Cloud Spreadsheet.
               </div>
 
-              {/* Unit */}
               <div style={{marginBottom:18}}>
                 <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>UNIT PELAPOR *</label>
                 <select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})} style={IS}>
@@ -650,7 +679,6 @@ function App() {
                 </select>
               </div>
 
-              {/* Jenis limbah */}
               <div style={{marginBottom:18}}>
                 <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>JENIS LIMBAH B3 *</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
@@ -671,14 +699,12 @@ function App() {
                 </div>
               </div>
 
-              {/* Qty + Date */}
               <div className="form-row" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
                 <div>
                   <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>
                     JUMLAH ({getType(form.type).unit}) *
                   </label>
-                  <input type="number" value={form.qty} onChange={e=>setForm({...form,qty:e.target.value})}
-                    placeholder="0" min="0" style={IS}/>
+                  <input type="number" value={form.qty} onChange={e=>setForm({...form,qty:e.target.value})} placeholder="0" min="0" style={IS}/>
                 </div>
                 <div>
                   <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>TANGGAL PENCATATAN *</label>
@@ -686,7 +712,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Status */}
               <div style={{marginBottom:18}}>
                 <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>STATUS SAAT INI *</label>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -702,7 +727,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Mitra + Manifest */}
               <div className="form-row" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
                 <div>
                   <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>MITRA TRANSPORTER B3</label>
@@ -713,40 +737,25 @@ function App() {
                 </div>
                 <div>
                   <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>NO. MANIFEST</label>
-                  <input type="text" value={form.manifest} onChange={e=>setForm({...form,manifest:e.target.value})}
-                    placeholder="MF-2025-XXXX" style={IS}/>
+                  <input type="text" value={form.manifest} onChange={e=>setForm({...form,manifest:e.target.value})} placeholder="MF-2025-XXXX" style={IS}/>
                 </div>
               </div>
 
-              {/* Catatan */}
               <div style={{marginBottom:18}}>
                 <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>CATATAN TAMBAHAN</label>
-                <textarea value={form.catatan} onChange={e=>setForm({...form,catatan:e.target.value})}
-                  placeholder="Kondisi penyimpanan, catatan khusus, dll..." rows={3}
-                  style={{...IS,resize:"vertical"}}/>
+                <textarea value={form.catatan} onChange={e=>setForm({...form,catatan:e.target.value})} placeholder="Kondisi penyimpanan, catatan khusus, dll..." rows={3} style={{...IS,resize:"vertical"}}/>
               </div>
 
-              {/* Foto */}
               <div style={{marginBottom:26}}>
-                <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>
-                  📷 FOTO BUKTI PENYIMPANAN
-                </label>
+                <label style={{color:"var(--dim)",fontSize:11,fontWeight:700,letterSpacing:"0.06em",display:"block",marginBottom:7}}>📷 FOTO BUKTI PENYIMPANAN</label>
                 <PhotoUploader photos={form.photos} onChange={p=>setForm({...form,photos:p})}/>
               </div>
 
-              {/* Preview */}
               {form.qty>0&&(
-                <div style={{
-                  background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.3)",
-                  borderRadius:10,padding:"14px 18px",marginBottom:22,
-                }}>
+                <div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.3)",borderRadius:10,padding:"14px 18px",marginBottom:22}}>
                   <div style={{color:"var(--amber)",fontSize:11,fontWeight:700,marginBottom:6}}>⚠️ PREVIEW DATA</div>
                   <div style={{color:"var(--dim)",fontSize:12,lineHeight:2}}>
-                    <b style={{color:"var(--text)"}}>{form.unit}</b> melaporkan{" "}
-                    <b style={{color:getType(form.type).color}}>{form.qty} {getType(form.type).unit} {getType(form.type).label}</b>{" "}
-                    pada {fmtDate(form.date)} —{" "}
-                    <b style={{color:getStatus(form.status).color}}>{getStatus(form.status).label}</b>{" "}
-                    — 📷 <b style={{color:"var(--purple)"}}>{form.photos.length} foto</b>
+                    <b style={{color:"var(--text)"}}>{form.unit}</b> melaporkan <b style={{color:getType(form.type).color}}>{form.qty} {getType(form.type).unit} {getType(form.type).label}</b> pada {fmtDate(form.date)} — <b style={{color:getStatus(form.status).color}}>{getStatus(form.status).label}</b>
                   </div>
                 </div>
               )}
@@ -760,7 +769,7 @@ function App() {
           </div>
         )}
 
-        {/* ════════════════ LOG & MANIFEST ════════════════ */}
+        {/* LOG & MANIFEST */}
         {tab==="log"&&(
           <div>
             <div style={{display:"flex",gap:12,marginBottom:18,flexWrap:"wrap",alignItems:"center"}}>
@@ -782,19 +791,15 @@ function App() {
                 <thead>
                   <tr style={{background:"var(--navyLight)"}}>
                     {["TANGGAL","UNIT","JENIS LIMBAH","JUMLAH","STATUS","MANIFEST","FOTO","AKSI"].map(h=>(
-                      <th key={h} style={{
-                        color:"var(--muted)",fontSize:10,fontWeight:700,letterSpacing:"0.06em",
-                        padding:"11px 14px",textAlign:"left",whiteSpace:"nowrap",
-                      }}>{h}</th>
+                      <th key={h} style={{color:"var(--muted)",fontSize:10,fontWeight:700,letterSpacing:"0.06em",padding:"11px 14px",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((e,i)=>{
+                  {filtered.map((e)=>{
                     const t=getType(e.type), s=getStatus(e.status);
                     return (
-                      <tr key={e.id} className="row-hover" style={{borderTop:"1px solid var(--border)",cursor:"pointer"}}
-                        onClick={()=>setDetail(e)}>
+                      <tr key={e.id} className="row-hover" style={{borderTop:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>setDetail(e)}>
                         <td style={{padding:"12px 14px",color:"var(--dim)",fontSize:11,whiteSpace:"nowrap"}}>{fmtDate(e.date)}</td>
                         <td style={{padding:"12px 14px",color:"var(--text)",fontSize:12,fontWeight:600}}>{e.unit}</td>
                         <td style={{padding:"12px 14px",color:t.color,fontSize:11,whiteSpace:"nowrap"}}>{t.icon} {t.label}</td>
@@ -803,30 +808,26 @@ function App() {
                         </td>
                         <td style={{padding:"12px 14px"}}><Badge color={s.color} small>{s.label.replace("Tersimpan di TPS","Tersimpan").replace("Menunggu Pickup","Menunggu")}</Badge></td>
                         <td style={{padding:"12px 14px",color:e.manifest?"var(--green)":"var(--muted)",fontSize:11,fontFamily:"'JetBrains Mono',monospace"}}>{e.manifest||"—"}</td>
-                        <td style={{padding:"12px 14px",color:e.photos.length>0?"var(--purple)":"var(--muted)",fontSize:11}}>
-                          {e.photos.length>0?`📷 ${e.photos.length}`:"—"}
+                        <td style={{padding:"12px 14px",color:e.photos && e.photos.length>0?"var(--purple)":"var(--muted)",fontSize:11}}>
+                          {e.photos && e.photos.length>0?`📷 ${e.photos.length}`:"—"}
                         </td>
-                        <td style={{padding:"12px 14px"}}>
-                          <button style={{
-                            background:"var(--navyLight)",border:"1px solid var(--border)",color:"var(--dim)",
-                            borderRadius:7,padding:"5px 12px",fontSize:10,cursor:"pointer",
-                            transition:"all .2s", fontWeight:600,
-                          }}
-                          onMouseEnter={e=>e.currentTarget.style.borderColor="var(--amber)"}
-                          onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}
-                          onClick={ev=>{ev.stopPropagation();setDetail(entries.find(x=>x.id===e.id));}}>
-                            Detail →
-                          </button>
-                         <button 
-                           onClick={(ev)=>{ev.stopPropagation(); handleHapusLogbook(e.id);}}
-                           style={{
-                             background:"#EF4444", border:"1px solid #EF4444", color:"white",
-                             borderRadius:7, padding:"5px 12px", fontSize:10, cursor:"pointer",
-                             transition:"all .2s", fontWeight:600, marginTop:5, display:"block", width:"100%"
-                           }}
-                         >
-                             🗑️ Hapus
-                         </button>
+                        <td style={{padding:"12px 14px",whiteSpace:"nowrap"}}>
+                          <div style={{display:"flex",gap:6}}>
+                            <button style={{
+                              background:"var(--navyLight)",border:"1px solid var(--border)",color:"var(--dim)",
+                              borderRadius:7,padding:"5px 10px",fontSize:10,cursor:"pointer",transition:"all .2s", fontWeight:600,
+                            }}
+                            onClick={ev=>{ev.stopPropagation(); setDetail(e);}}>
+                              Detail →
+                            </button>
+                            <button style={{
+                              background:"rgba(239,68,68,.15)",border:"1px solid rgba(239,68,68,.4)",color:"var(--red)",
+                              borderRadius:7,padding:"5px 10px",fontSize:10,cursor:"pointer",transition:"all .2s", fontWeight:600,
+                            }}
+                            onClick={ev=>{ev.stopPropagation(); handleHapusLogbook(e.id);}}>
+                              🗑️ Hapus
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -840,47 +841,27 @@ function App() {
           </div>
         )}
 
-        {/* ════════════════ GALERI FOTO ════════════════ */}
+        {/* GALERI FOTO */}
         {tab==="galeri"&&(
           <div>
             <div style={{color:"var(--amberL)",fontWeight:800,fontSize:16,marginBottom:22,letterSpacing:"0.04em"}}>
               🖼️ GALERI FOTO BUKTI PENYIMPANAN LIMBAH B3
             </div>
-            {entries.filter(e=>e.photos.length>0).length===0?(
-              <div style={{
-                background:"var(--navyMid)",border:"2px dashed var(--border)",borderRadius:14,
-                padding:"60px 40px",textAlign:"center",
-              }}>
+            {entries.filter(e=>e.photos && e.photos.length>0).length===0?(
+              <div style={{background:"var(--navyMid)",border:"2px dashed var(--border)",borderRadius:14,padding:"60px 40px",textAlign:"center"}}>
                 <div style={{fontSize:52,marginBottom:14}}>📷</div>
                 <div style={{color:"var(--dim)",fontSize:15,fontWeight:700,marginBottom:8}}>Belum ada foto yang diupload</div>
-                <div style={{color:"var(--muted)",fontSize:12}}>Upload foto melalui Form Input Data saat membuat entri baru</div>
-                <button className="btn-amber" onClick={()=>setTab("input")} style={{
-                  background:"var(--amber)",color:"var(--navy)",border:"none",borderRadius:9,
-                  padding:"11px 24px",fontWeight:800,fontSize:13,cursor:"pointer",marginTop:20,
-                }}>+ Input & Upload Foto</button>
+                <button className="btn-amber" onClick={()=>setTab("input")} style={{background:"var(--amber)",color:"var(--navy)",border:"none",borderRadius:9,padding:"11px 24px",fontWeight:800,fontSize:13,cursor:"pointer",marginTop:20}}>+ Input & Upload Foto</button>
               </div>
             ):(
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:18}}>
-                {entries.filter(e=>e.photos.length>0).map(e=>{
+                {entries.filter(e=>e.photos && e.photos.length>0).map(e=>{
                   const t=getType(e.type), s=getStatus(e.status);
                   return (
-                    <div key={e.id} className="card-hover" style={{
-                      background:"var(--navyMid)",border:"1px solid var(--border)",
-                      borderRadius:14,overflow:"hidden",
-                    }}>
-                      {/* Photos strip */}
+                    <div key={e.id} className="card-hover" style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,overflow:"hidden"}}>
                       <div style={{display:"flex",gap:4,padding:10,background:"var(--navyLight)",overflowX:"auto"}}>
                         {e.photos.map((p,pi)=>(
-                          <img key={pi} src={p.src} alt={p.name}
-                            onClick={()=>setDetail(entries.find(x=>x.id===e.id))}
-                            style={{
-                              width:95,height:72,objectFit:"cover",borderRadius:7,
-                              border:"1px solid var(--border)",flexShrink:0,cursor:"pointer",
-                              transition:"opacity .2s",
-                            }}
-                            onMouseEnter={ev=>ev.currentTarget.style.opacity=".8"}
-                            onMouseLeave={ev=>ev.currentTarget.style.opacity="1"}
-                          />
+                          <img key={pi} src={p.src} alt="" onClick={()=>setDetail(e)} style={{width:95,height:72,objectFit:"cover",borderRadius:7,border:"1px solid var(--border)",flexShrink:0,cursor:"pointer"}}/>
                         ))}
                       </div>
                       <div style={{padding:"14px 16px"}}>
@@ -889,19 +870,8 @@ function App() {
                           <Badge color={s.color} small>{s.label.replace("Tersimpan di TPS","Tersimpan")}</Badge>
                         </div>
                         <div style={{color:"var(--dim)",fontSize:11,marginBottom:4}}>{e.unit} · {fmtDate(e.date)}</div>
-                        <div style={{color:"var(--text)",fontSize:13,fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>
-                          {e.qty} <span style={{color:"var(--muted)",fontWeight:400,fontSize:11}}>{t.unit}</span>
-                        </div>
-                        {e.manifest&&<div style={{color:"var(--green)",fontSize:11,marginTop:5}}>📄 {e.manifest}</div>}
-                        <div style={{color:"var(--purple)",fontSize:11,marginTop:4}}>📷 {e.photos.length} foto</div>
-                        <button onClick={()=>setDetail(entries.find(x=>x.id===e.id))} style={{
-                          background:"var(--navyLight)",border:"1px solid var(--border)",color:"var(--dim)",
-                          borderRadius:7,padding:"7px 14px",fontSize:11,cursor:"pointer",
-                          marginTop:12,width:"100%",fontWeight:600,transition:"border-color .2s",
-                        }}
-                        onMouseEnter={ev=>ev.currentTarget.style.borderColor="var(--amber)"}
-                        onMouseLeave={ev=>ev.currentTarget.style.borderColor="var(--border)"}
-                        >Lihat Detail & Foto →</button>
+                        <div style={{color:"var(--text)",fontSize:13,fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>{e.qty} <span style={{color:"var(--muted)",fontWeight:400,fontSize:11}}>{t.unit}</span></div>
+                        <button onClick={()=>setDetail(e)} style={{background:"var(--navyLight)",border:"1px solid var(--border)",color:"var(--dim)",borderRadius:7,padding:"7px 14px",fontSize:11,cursor:"pointer",marginTop:12,width:"100%",fontWeight:600}}>Lihat Detail & Foto →</button>
                       </div>
                     </div>
                   );
@@ -911,7 +881,7 @@ function App() {
           </div>
         )}
 
-        {/* ════════════════ LAPORAN ════════════════ */}
+        {/* LAPORAN */}
         {tab==="laporan"&&(
           <div style={{maxWidth:760}}>
             <div style={{background:"var(--navyMid)",border:"1px solid var(--border)",borderRadius:14,padding:28,marginBottom:18}}>
@@ -919,7 +889,6 @@ function App() {
                 📄 RINGKASAN LAPORAN B3 — {new Date().getFullYear()}
               </div>
 
-              {/* Compliance table */}
               <div className="table-wrap" style={{background:"var(--navyLight)",borderRadius:10,overflow:"hidden",marginBottom:22}}>
                 <table style={{width:"100%",borderCollapse:"collapse",minWidth:520}}>
                   <thead>
@@ -931,21 +900,17 @@ function App() {
                   </thead>
                   <tbody>
                     {byType.map((t,i)=>{
-                      const angkut = entries.filter(e=>e.type===t.id&&e.status==="sudah_diangkut").reduce((s,e)=>s+e.qty,0);
+                      const angkut = entries.filter(e=>e.type===t.id&&e.status==="sudah_diangkut").reduce((s,e)=>s+Number(e.qty),0);
                       const pct    = t.total>0?Math.round(angkut/t.total*100):0;
-                      const fp     = entries.filter(e=>e.type===t.id&&e.photos.length>0).length;
+                      const fp     = entries.filter(e=>e.type===t.id&&e.photos && e.photos.length>0).length;
                       const pColor = pct===100?"var(--green)":pct>=50?"var(--amber)":"var(--red)";
                       return (
                         <tr key={t.id} style={{borderTop:"1px solid var(--border)",background:i%2===0?"transparent":"rgba(10,22,40,.4)"}}>
                           <td style={{padding:"11px 14px",color:t.color,fontSize:12}}>{t.icon} {t.label}</td>
                           <td style={{padding:"11px 14px",color:"var(--text)",fontSize:12,fontFamily:"'JetBrains Mono',monospace",fontWeight:700}}>{t.total} <span style={{color:"var(--muted)",fontWeight:400,fontSize:10}}>{t.unit}</span></td>
                           <td style={{padding:"11px 14px",color:"var(--green)",fontSize:12,fontFamily:"'JetBrains Mono',monospace",fontWeight:700}}>{angkut} <span style={{color:"var(--muted)",fontWeight:400,fontSize:10}}>{t.unit}</span></td>
-                          <td style={{padding:"11px 14px"}}>
-                            <span style={{color:pColor,fontSize:13,fontWeight:800,fontFamily:"'JetBrains Mono',monospace"}}>{pct}%</span>
-                          </td>
-                          <td style={{padding:"11px 14px",color:fp>0?"var(--purple)":"var(--muted)",fontSize:11}}>
-                            {fp>0?`📷 ${fp}`:"—"}
-                          </td>
+                          <td style={{padding:"11px 14px"}}><span style={{color:pColor,fontSize:13,fontWeight:800,fontFamily:"'JetBrains Mono',monospace"}}>{pct}%</span></td>
+                          <td style={{padding:"11px 14px",color:fp>0?"var(--purple)":"var(--muted)",fontSize:11}}>{fp>0?`📷 ${fp}`:"—"}</td>
                         </tr>
                       );
                     })}
@@ -953,7 +918,6 @@ function App() {
                 </table>
               </div>
 
-              {/* KPI Cards */}
               <div className="kpi-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12}}>
                 {[
                   {label:"Compliance Rate",     value:`${total?Math.round(diangkut/total*100):0}%`, color:"var(--green)",  desc:"Sudah diangkut mitra"},
@@ -969,48 +933,15 @@ function App() {
                 ))}
               </div>
             </div>
-
-            {/* Alert */}
-            {(menunggu>0||tersimpan>0)&&(
-              <div style={{background:"rgba(239,68,68,.07)",border:"1px solid rgba(239,68,68,.3)",borderRadius:12,padding:"18px 22px"}}>
-                <div style={{color:"var(--red)",fontWeight:700,fontSize:13,marginBottom:12}}>
-                  ⚠️ ITEM PERLU TINDAK LANJUT SEGERA
-                </div>
-                {entries.filter(e=>e.status!=="sudah_diangkut").map(e=>{
-                  const t=getType(e.type), s=getStatus(e.status);
-                  return (
-                    <div key={e.id} style={{
-                      display:"flex",gap:10,alignItems:"center",
-                      color:"var(--dim)",fontSize:12,padding:"6px 0",
-                      borderBottom:"1px solid var(--border)",flexWrap:"wrap",
-                    }}>
-                      <span>{t.icon}</span>
-                      <b style={{color:"var(--text)"}}>{e.unit}</b>
-                      <span>—</span>
-                      <span>{t.label} {e.qty} {t.unit}</span>
-                      <span>—</span>
-                      <Badge color={s.color} small>{s.label}</Badge>
-                      {e.photos.length===0&&<span style={{color:"var(--amber)",fontSize:10}}>⚠️ Belum ada foto</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
       </main>
 
-      {/* ── FOOTER ── */}
-      <footer style={{
-        borderTop:"1px solid var(--border)",padding:"14px 28px",
-        display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8,
-        color:"var(--muted)",fontSize:10,background:"var(--navyMid)",
-      }}>
-        <span>SISTEM PENGELOLAAN LIMBAH B3 · MITRA: PT SETIA UTAMA NUSANTARA</span>
-        <span>Solid Waste Diverted · GHG Reduction · PT MARGA MANDALASAKTI {new Date().getFullYear()}</span>
+      <footer style={{borderTop:"1px solid var(--border)",padding:"14px 28px",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8,color:"var(--muted)",fontSize:10,background:"var(--navyMid)"}}>
+        <span>SISTEM PENGELOLAAN LIMBAH B3 · DATABASE INTEGRATED</span>
+        <span>PT MARGA MANDALASAKTI {new Date().getFullYear()}</span>
       </footer>
 
-      {/* ── DETAIL MODAL ── */}
       {detail&&(
         <DetailModal
           entry={detail}
@@ -1018,6 +949,7 @@ function App() {
           onUpdateStatus={(id,s)=>updateStatus(id,s)}
           onUpdateManifest={(id,m)=>updateManifest(id,m)}
           onAddPhoto={(id,p)=>addPhoto(id,p)}
+          onDelete={(id)=>handleHapusLogbook(id)}
         />
       )}
     </div>
