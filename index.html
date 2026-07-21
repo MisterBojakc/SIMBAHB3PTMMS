@@ -523,16 +523,25 @@ function App() {
           <div className="header-flex" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <div style={{
-                background:"linear-gradient(135deg,var(--amber),#D97706)",
-                borderRadius:10,padding:"8px 11px",fontSize:20,
-                boxShadow:"0 4px 16px rgba(245,158,11,.35)",
-              }}>⚠️</div>
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "#FFFFFF",
+  borderRadius: 10,
+  padding: "6px 10px",
+  boxShadow: "0 4px 16px rgba(245,158,11,.20)",
+}}>
+  <img
+    src="/logo-astra-infra.png"
+    alt="Astra Infra Toll Road - Tangerang Merak"
+    style={{ height: 32, width: "auto", objectFit: "contain", display: "block" }}
+  />
               <div>
                 <div style={{fontWeight:800,fontSize:15,letterSpacing:"0.04em",color:"var(--amberL)",fontFamily:"'JetBrains Mono',monospace"}}>
                   SISTEM PENGELOLAAN LIMBAH B3
                 </div>
                 <div style={{color:"var(--muted)",fontSize:10,letterSpacing:"0.07em"}}>
-                  PT MARGA MANDALASAKTI · SOLID WASTE DIVERTED {loading && "· 🔄 MENYINGKRONKAN..."}
+                  PT MARGA MANDALASAKTI · HAZARDOUS SOLID WASTE DIVERTED {loading && "· 🔄 MENYINGKRONKAN..."}
                 </div>
               </div>
             </div>
